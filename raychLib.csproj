@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+	<Nullable>enable</Nullable>
+	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+	  <PackageReference Include="Raylib-cs" Version="6.1.1" />
+	  <EmbeddedResource Include="res\fonts\default_font.ttf" />
+	  <EmbeddedResource Include="res\fonts\charset.txt" />
+  </ItemGroup>
+
+</Project>
