@@ -40,6 +40,7 @@ public class TerminalRenderer
 				fontData = memSream.ToArray();
 			}
 		}
+
 		string charset = "";
 		using (var stream = assembly.GetManifestResourceStream("raychLib.res.fonts.charset.txt"))
 		{
@@ -50,6 +51,7 @@ public class TerminalRenderer
 				this.Charset = charset;
 			}
 		}
+
 		int codepointsCount = 0;
 		int* codepoints = Raylib.LoadCodepoints(charset, &codepointsCount);
 		int fontSize = 40;
@@ -73,9 +75,9 @@ public class TerminalRenderer
 
 	public void SetScreen(TerminalScreen screen)
 	{
-		this.Screen?.Unload();
+		this.Screen?.OnUnload?.Invoke(this.Screen);
 		this.Screen = screen;
-		this.Screen?.Load();
+		this.Screen?.OnLoad?.Invoke(this.Screen);
 	}
 
 	public void Render()
@@ -87,7 +89,7 @@ public class TerminalRenderer
 		Raylib.ClearBackground(Raylib.BLACK);
 		{
 			this.ClearBuffer();
-			this.Screen?.Draw(this);
+			this.Screen?.OnDraw?.Invoke(this.Screen, new TerminalDrawEventArgs(this));
 			this.DrawBuffer();
 		}
 		Raylib.EndTextureMode();
@@ -121,7 +123,7 @@ public class TerminalRenderer
 	
 	public void Update(float deltaTime)
 	{
-		this.Screen?.Update(Raylib.GetFrameTime(), this.InputController);
+		this.Screen?.OnUpdate?.Invoke(this.Screen, new TerminalUpdateEventArgs(Raylib.GetFrameTime(), this.InputController));
 	}
 
 	private void ClearBuffer()
@@ -199,6 +201,6 @@ public class TerminalRenderer
 
 	public void Unload()
 	{
-		this.Screen?.Unload();
+		this.Screen?.OnUnload?.Invoke(this.Screen);
 	}
 }
