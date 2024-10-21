@@ -18,10 +18,12 @@ public class TerminalRenderer
 	public readonly string Charset;
 
 	internal Vector2 glyphOffset;
+	
+	private TerminalColor ClearColor = new (0);
 
 	public unsafe TerminalRenderer(int windowWidth, int windowHeight, int bufferWidth = 50, int bufferHeight = 30, string title = "untitled")
 	{
-		// Raylib.SetConfigFlags(ConfigFlags.FLAG_VSYNC_HINT);
+		Raylib.SetConfigFlags(ConfigFlags.FLAG_VSYNC_HINT);
 		Raylib.SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
 		Raylib.InitWindow(windowWidth, windowHeight, title);
 		Raylib.SetTargetFPS(60);
@@ -116,7 +118,7 @@ public class TerminalRenderer
 				0.0f,
 				(Color)glyph.ForegroundColor);
 	}
-
+	
 	public void Update(float deltaTime)
 	{
 		this.Screen?.Update(Raylib.GetFrameTime(), this.InputController);
@@ -129,6 +131,7 @@ public class TerminalRenderer
 			for (int j = 0; j < this.Buffer.GetLength(1); j++)
 			{
 				ref var g = ref this.Buffer[i, j]; g.Clear();
+				g.BackgroundColor = this.ClearColor;
 			}
 		}
 	}
@@ -167,6 +170,11 @@ public class TerminalRenderer
 	{
 		for (int i = 0; i < text.Length; i++) this.DrawGlyph(x + i, y, new TerminalGlyph(text[i], foregroundColor, backgroundColor));
 	}
+	
+	public void DrawText(int x, int y, TerminalGlyph[] text)
+	{
+		for (int i = 0; i < text.Length; i++) this.DrawGlyph(x + i, y, text[i]);
+	}
 
 	public void HighlightGlyph(int x, int y, float foregroundValue, float backgroundValue)
 	{
@@ -182,6 +190,11 @@ public class TerminalRenderer
 		g.BackgroundColor.R = (byte)RayMath.Lerp(g.BackgroundColor.R, 255, backgroundValue);
 		g.BackgroundColor.G = (byte)RayMath.Lerp(g.BackgroundColor.G, 255, backgroundValue);
 		g.BackgroundColor.B = (byte)RayMath.Lerp(g.BackgroundColor.B, 255, backgroundValue);
+	}
+	
+	public void SetClearColor(TerminalColor color)
+	{
+		this.ClearColor = color;
 	}
 
 	public void Unload()
