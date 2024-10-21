@@ -5,6 +5,8 @@ namespace raychLib;
 
 public class TerminalRenderer
 {
+	public const int MIN_BUFFER_WIDTH = 40;
+	public const int MIN_BUFFER_HEIGHT = 20;
 	private TerminalScreen? Screen;
 
 	public TerminalGlyph[,] Buffer { get; private set; }
@@ -18,8 +20,8 @@ public class TerminalRenderer
 	public readonly string Charset;
 
 	internal Vector2 glyphOffset;
-	
-	private TerminalColor ClearColor = new (0);
+
+	private TerminalColor ClearColor = new(0);
 
 	public unsafe TerminalRenderer(int windowWidth, int windowHeight, int bufferWidth = 50, int bufferHeight = 30, string title = "untitled")
 	{
@@ -80,6 +82,13 @@ public class TerminalRenderer
 		this.Screen?.OnLoad?.Invoke(this.Screen);
 	}
 
+	public void SetBufferSize(int width, int height)
+	{
+		this.Buffer = new TerminalGlyph[height, width];
+		Raylib.UnloadRenderTexture(this.RenderZone);
+		this.RenderZone = Raylib.LoadRenderTexture(width * (int)this.glyphOffset.X, height * (int)this.glyphOffset.Y);
+	}
+
 	public void Render()
 	{
 		Raylib.EnableEventWaiting();
@@ -106,7 +115,7 @@ public class TerminalRenderer
 					Raylib.WHITE);
 		}
 		Raylib.EndDrawing();
-		Raylib.PollInputEvents();
+		while (Raylib.GetKeyPressed() > 0) {}
 	}
 
 	private void RenderGlyph(ref TerminalGlyph glyph, int x, int y)
@@ -120,7 +129,7 @@ public class TerminalRenderer
 				0.0f,
 				(Color)glyph.ForegroundColor);
 	}
-	
+
 	public void Update(float deltaTime)
 	{
 		this.Screen?.OnUpdate?.Invoke(this.Screen, new TerminalUpdateEventArgs(Raylib.GetFrameTime(), this.InputController));
@@ -172,7 +181,7 @@ public class TerminalRenderer
 	{
 		for (int i = 0; i < text.Length; i++) this.DrawGlyph(x + i, y, new TerminalGlyph(text[i], foregroundColor, backgroundColor));
 	}
-	
+
 	public void DrawText(int x, int y, TerminalGlyph[] text)
 	{
 		for (int i = 0; i < text.Length; i++) this.DrawGlyph(x + i, y, text[i]);
@@ -193,7 +202,7 @@ public class TerminalRenderer
 		g.BackgroundColor.G = (byte)RayMath.Lerp(g.BackgroundColor.G, 255, backgroundValue);
 		g.BackgroundColor.B = (byte)RayMath.Lerp(g.BackgroundColor.B, 255, backgroundValue);
 	}
-	
+
 	public void SetClearColor(TerminalColor color)
 	{
 		this.ClearColor = color;

@@ -4,13 +4,13 @@ namespace raychLib;
 
 public class Terminal
 {
-	private static Terminal? instance;
+	private static Terminal instance;
 
 	public static Terminal Shared
 	{
 		get
 		{
-			if (Terminal.instance == null) throw new Exception("There is no Terminal instance!");
+			if (Terminal.instance == null) Terminal.instance = new Terminal();
 			return instance;
 		}
 	}
@@ -19,13 +19,15 @@ public class Terminal
 
 	internal TerminalRenderer getRenderer() => this.Renderer;
 
-	public unsafe Terminal(TerminalRenderer renderer)
+	public void Init(TerminalRenderer renderer)
 	{
 		this.Renderer = renderer;
 		Terminal.instance = this;
 	}
 
 	public void SetScreen(TerminalScreen screen) => this.Renderer.SetScreen(screen);
+
+	public void SetBufferSize(int width, int height) => this.Renderer.SetBufferSize(width, height);
 
 	public void Run()
 	{
