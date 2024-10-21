@@ -6,7 +6,7 @@ public class TerminalInputController
 {
 	public TerminalInputController()
 	{
-		Raylib.SetExitKey(KeyboardKey.Null);
+		Raylib.SetExitKey(KeyboardKey.KEY_NULL);
 	}
 	
 	public bool IsKeyPressed(TerminalKey key)
@@ -41,7 +41,7 @@ public class TerminalInputController
 
 	public void SetMouseCursor(MouseCursor cursor)
 	{
-		Raylib.SetMouseCursor((Raylib_cs.MouseCursor)cursor);
+		Raylib.SetMouseCursor((Raylib_CsLo.MouseCursor)cursor);
 	}
 
 	public Vector2 GetMousePosition()
@@ -50,8 +50,8 @@ public class TerminalInputController
 		Vector2 windowSize = new (Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
 		var buffer = Terminal.Shared.getRenderer().Buffer;
 		Vector2 bufferSize = new (buffer.GetLength(1), buffer.GetLength(0));
-		Vector2 windowSizeScaled = Raymath.Vector2Divide(windowSize,bufferSize);
-		return Raymath.Vector2Divide(mouseRawPos, windowSizeScaled);
+		Vector2 windowSizeScaled = RayMath.Vector2Divide(windowSize,bufferSize);
+		return RayMath.Vector2Divide(mouseRawPos, windowSizeScaled);
 	}
 
 	public void SetMousePosition(int positionX, int positionY)

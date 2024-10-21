@@ -9,7 +9,7 @@ public class TerminalRenderer
 
 	public TerminalGlyph[,] Buffer { get; private set; }
 
-	private RenderTexture2D RenderZone;
+	private RenderTexture RenderZone;
 
 	protected TerminalInputController InputController { get; set; }
 
@@ -19,9 +19,10 @@ public class TerminalRenderer
 
 	internal Vector2 glyphOffset;
 
-	public TerminalRenderer(int windowWidth, int windowHeight, int bufferWidth = 50, int bufferHeight = 30, string title = "untitled")
+	public unsafe TerminalRenderer(int windowWidth, int windowHeight, int bufferWidth = 50, int bufferHeight = 30, string title = "untitled")
 	{
-		Raylib.SetConfigFlags(ConfigFlags.ResizableWindow);
+		// Raylib.SetConfigFlags(ConfigFlags.FLAG_VSYNC_HINT);
+		Raylib.SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
 		Raylib.InitWindow(windowWidth, windowHeight, title);
 		Raylib.SetTargetFPS(60);
 		Raylib.SetWindowMinSize(400, 300);
@@ -48,19 +49,23 @@ public class TerminalRenderer
 			}
 		}
 		int codepointsCount = 0;
-		int[] codepoints = Raylib.LoadCodepoints(charset, ref codepointsCount);
+		int* codepoints = Raylib.LoadCodepoints(charset, &codepointsCount);
 		int fontSize = 40;
-		this.font = Raylib.LoadFontFromMemory(".ttf", fontData, fontSize, codepoints, codepointsCount);
+		fixed (byte* fontDataPtr = fontData)
+		{
+			this.font = Raylib.LoadFontFromMemory(".ttf", fontDataPtr, fontData.Length, fontSize, codepoints, codepointsCount);
+		}
 		this.Buffer = new TerminalGlyph[bufferHeight, bufferWidth];
 
 		var glyphInfo = Raylib.GetGlyphInfo(this.font, Raylib.GetGlyphIndex(this.font, (int)'█'));
 
-		int xoff = glyphInfo.AdvanceX - this.font.BaseSize;
-		xoff = xoff > this.font.BaseSize ? 0 : xoff;
-		this.glyphOffset = new(this.font.BaseSize + xoff, this.font.BaseSize);
+		int xoff = glyphInfo.advanceX - this.font.baseSize;
+		xoff = xoff > this.font.baseSize ? 0 : xoff;
+		this.glyphOffset = new(this.font.baseSize + xoff, this.font.baseSize);
 
 		this.RenderZone = Raylib.LoadRenderTexture(bufferWidth * (int)this.glyphOffset.X, bufferHeight * (int)this.glyphOffset.Y);
 
+		Raylib.SetTextureFilter(this.RenderZone.texture, TextureFilter.TEXTURE_FILTER_POINT);
 		this.InputController = new TerminalInputController();
 	}
 
@@ -73,10 +78,11 @@ public class TerminalRenderer
 
 	public void Render()
 	{
-		ref Texture2D texture = ref this.RenderZone.Texture;
+		Raylib.EnableEventWaiting();
+		ref Texture texture = ref this.RenderZone.texture;
+
 		Raylib.BeginTextureMode(this.RenderZone);
-		Raylib.SetTextureFilter(texture, TextureFilter.Point);
-		Raylib.ClearBackground(Color.Black);
+		Raylib.ClearBackground(Raylib.BLACK);
 		{
 			this.ClearBuffer();
 			this.Screen?.Draw(this);
@@ -85,29 +91,28 @@ public class TerminalRenderer
 		Raylib.EndTextureMode();
 
 		Raylib.BeginDrawing();
-		Raylib.ClearBackground(Color.Black);
+		Raylib.ClearBackground(Raylib.BLACK);
 		{
 			Raylib.DrawTexturePro(
 					texture,
-					new(0, 0, texture.Width, -texture.Height),
-					new(0, 0, Raylib.GetScreenWidth(), Raylib.GetScreenHeight()),
-					new(0, 0),
+					new Rectangle(0, 0, texture.width, -texture.height),
+					new Rectangle(0, 0, Raylib.GetScreenWidth(), Raylib.GetScreenHeight()),
+					new Vector2(0, 0),
 					0.0f,
-					Color.White);
+					Raylib.WHITE);
 		}
 		Raylib.EndDrawing();
+		Raylib.PollInputEvents();
 	}
 
 	private void RenderGlyph(ref TerminalGlyph glyph, int x, int y)
 	{
-		var glyphInfo = Raylib.GetGlyphInfo(this.font, Raylib.GetGlyphIndex(this.font, (int)glyph.Character));
-
 		Raylib.DrawTextEx(
 				this.font,
 				$"{glyph.Character}",
-				new(x * this.glyphOffset.X,
+				new Vector2(x * this.glyphOffset.X,
 					y * this.glyphOffset.Y),
-				this.font.BaseSize,
+				this.font.baseSize,
 				0.0f,
 				(Color)glyph.ForegroundColor);
 	}
@@ -168,15 +173,15 @@ public class TerminalRenderer
 		if (x >= this.Buffer.GetLength(1) || x < 0 || y >= this.Buffer.GetLength(0) || y < 0)
 			return;
 
-		ref var g = ref this.Buffer[y,x];
+		ref var g = ref this.Buffer[y, x];
 		//TODO: make lerp an TerminalColor class method
-		g.ForegroundColor.R = (byte)Raymath.Lerp(g.ForegroundColor.R, 255, foregroundValue);
-		g.ForegroundColor.G = (byte)Raymath.Lerp(g.ForegroundColor.G, 255, foregroundValue);
-		g.ForegroundColor.B = (byte)Raymath.Lerp(g.ForegroundColor.B, 255, foregroundValue);
+		g.ForegroundColor.R = (byte)RayMath.Lerp(g.ForegroundColor.R, 255, foregroundValue);
+		g.ForegroundColor.G = (byte)RayMath.Lerp(g.ForegroundColor.G, 255, foregroundValue);
+		g.ForegroundColor.B = (byte)RayMath.Lerp(g.ForegroundColor.B, 255, foregroundValue);
 
-		g.BackgroundColor.R = (byte)Raymath.Lerp(g.BackgroundColor.R, 255, backgroundValue);
-		g.BackgroundColor.G = (byte)Raymath.Lerp(g.BackgroundColor.G, 255, backgroundValue);
-		g.BackgroundColor.B = (byte)Raymath.Lerp(g.BackgroundColor.B, 255, backgroundValue);
+		g.BackgroundColor.R = (byte)RayMath.Lerp(g.BackgroundColor.R, 255, backgroundValue);
+		g.BackgroundColor.G = (byte)RayMath.Lerp(g.BackgroundColor.G, 255, backgroundValue);
+		g.BackgroundColor.B = (byte)RayMath.Lerp(g.BackgroundColor.B, 255, backgroundValue);
 	}
 
 	public void Unload()

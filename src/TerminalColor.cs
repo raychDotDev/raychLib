@@ -21,9 +21,9 @@ public struct TerminalColor
 		this.R = r; this.G = g; this.B = b;
 	}
 
-	public static explicit operator Raylib_cs.Color(TerminalColor c)
+	public static explicit operator Raylib_CsLo.Color(TerminalColor c)
 	{ return new Color(c.R, c.G, c.B, (byte)255); }
 
-	public static explicit operator TerminalColor(Color c)
-	{ return new TerminalColor(c.R, c.G, c.B); }
+	public static explicit operator TerminalColor(Raylib_CsLo.Color c)
+	{ return new TerminalColor(c.r, c.g, c.b); }
 }

@@ -1,4 +1,4 @@
-global using Raylib_cs;
+global using Raylib_CsLo;
 
 namespace raychLib;
 
@@ -26,6 +26,7 @@ public class Terminal
 	}
 
 	public void SetScreen(TerminalScreen screen) => this.Renderer.SetScreen(screen);
+
 	public void Run()
 	{
 		while (!Raylib.WindowShouldClose())
@@ -42,8 +43,6 @@ public class Terminal
 	}
 
 	public int GetFPS() => Raylib.GetFPS();
-
-	public void SetTargetFPS(int value) => Raylib.SetTargetFPS(value);
 
 	public float GetTime() => (float)Raylib.GetTime();
 }
