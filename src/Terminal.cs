@@ -1,4 +1,5 @@
-global using Raylib_CsLo;
+global using Raylib_CSharp;
+global using Raylib_CSharp.Windowing;
 
 namespace raychLib;
 
@@ -28,23 +29,26 @@ public class Terminal
 	public void SetScreen(TerminalScreen screen) => this.Renderer.SetScreen(screen);
 
 	public void SetBufferSize(int width, int height) => this.Renderer.SetBufferSize(width, height);
+	
+	public int GetBufferWidth() => this.Renderer.Buffer.GetLength(1);
+	public int GetBufferHeight() => this.Renderer.Buffer.GetLength(0);
 
 	public void Run()
 	{
-		while (!Raylib.WindowShouldClose())
+		while (!Window.ShouldClose())
 		{
 			this.Renderer.Render();
-			this.Renderer.Update(Raylib.GetFrameTime());
+			this.Renderer.Update(Time.GetFrameTime());
 		}
 	}
 
 	public void Stop()
 	{
 		this.Renderer.Unload();
-		Raylib.CloseWindow();
+		Window.Close();
 	}
 
-	public int GetFPS() => Raylib.GetFPS();
+	public int GetFPS() => Time.GetFPS();
 
-	public float GetTime() => (float)Raylib.GetTime();
+	public float GetTime() => (float)Time.GetTime();
 }

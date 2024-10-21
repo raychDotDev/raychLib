@@ -1,17 +1,27 @@
 using System.Reflection;
 using System.Numerics;
+using Raylib_CSharp;
+using Raylib_CSharp.Windowing;
+using Raylib_CSharp.Geometry;
+using Raylib_CSharp.Transformations;
+using Raylib_CSharp.Rendering;
+using Raylib_CSharp.Colors;
+using Raylib_CSharp.Textures;
+using Raylib_CSharp.Fonts;
+
 
 namespace raychLib;
 
-public class TerminalRenderer
+public partial class TerminalRenderer
 {
 	public const int MIN_BUFFER_WIDTH = 40;
 	public const int MIN_BUFFER_HEIGHT = 20;
+
 	private TerminalScreen? Screen;
 
 	public TerminalGlyph[,] Buffer { get; private set; }
 
-	private RenderTexture RenderZone;
+	private RenderTexture2D RenderZone;
 
 	protected TerminalInputController InputController { get; set; }
 
@@ -25,12 +35,11 @@ public class TerminalRenderer
 
 	public unsafe TerminalRenderer(int windowWidth, int windowHeight, int bufferWidth = 50, int bufferHeight = 30, string title = "untitled")
 	{
-		Raylib.SetConfigFlags(ConfigFlags.FLAG_VSYNC_HINT);
-		Raylib.SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
-		Raylib.InitWindow(windowWidth, windowHeight, title);
-		Raylib.SetTargetFPS(60);
-		Raylib.SetWindowMinSize(400, 300);
-
+		Raylib.SetConfigFlags(ConfigFlags.VSyncHint);
+		Raylib.SetConfigFlags(ConfigFlags.ResizableWindow);
+		Window.Init(windowWidth, windowHeight, title);
+		// Time.SetTargetFPS(60);
+		Window.SetMinSize(400, 300);
 		byte[] fontData;
 		var assembly = Assembly.GetExecutingAssembly();
 		using (var stream = assembly.GetManifestResourceStream("raychLib.res.fonts.default_font.ttf"))
@@ -54,25 +63,24 @@ public class TerminalRenderer
 			}
 		}
 
-		int codepointsCount = 0;
-		int* codepoints = Raylib.LoadCodepoints(charset, &codepointsCount);
+		ReadOnlySpan<int> codepoints = TextManager.LoadCodepoints(charset);
+
 		int fontSize = 40;
-		fixed (byte* fontDataPtr = fontData)
-		{
-			this.font = Raylib.LoadFontFromMemory(".ttf", fontDataPtr, fontData.Length, fontSize, codepoints, codepointsCount);
-		}
+		this.font = Font.LoadFromMemory(".ttf", new ReadOnlySpan<byte>(fontData), fontSize, codepoints);
 		this.Buffer = new TerminalGlyph[bufferHeight, bufferWidth];
 
-		var glyphInfo = Raylib.GetGlyphInfo(this.font, Raylib.GetGlyphIndex(this.font, (int)'█'));
+		var glyphInfo = this.font.GetGlyphInfo((int)'█');
 
-		int xoff = glyphInfo.advanceX - this.font.baseSize;
-		xoff = xoff > this.font.baseSize ? 0 : xoff;
-		this.glyphOffset = new(this.font.baseSize + xoff, this.font.baseSize);
+		int xoff = glyphInfo.AdvanceX - this.font.BaseSize;
+		xoff = xoff > this.font.BaseSize ? 0 : xoff;
+		this.glyphOffset = new(this.font.BaseSize + xoff, this.font.BaseSize);
 
-		this.RenderZone = Raylib.LoadRenderTexture(bufferWidth * (int)this.glyphOffset.X, bufferHeight * (int)this.glyphOffset.Y);
+		this.RenderZone = RenderTexture2D.Load(bufferWidth * (int)this.glyphOffset.X, bufferHeight * (int)this.glyphOffset.Y);
 
-		Raylib.SetTextureFilter(this.RenderZone.texture, TextureFilter.TEXTURE_FILTER_POINT);
+		this.RenderZone.Texture.SetFilter(TextureFilter.Point);
 		this.InputController = new TerminalInputController();
+
+		Window.EnableEventWaiting();
 	}
 
 	public void SetScreen(TerminalScreen screen)
@@ -85,54 +93,52 @@ public class TerminalRenderer
 	public void SetBufferSize(int width, int height)
 	{
 		this.Buffer = new TerminalGlyph[height, width];
-		Raylib.UnloadRenderTexture(this.RenderZone);
-		this.RenderZone = Raylib.LoadRenderTexture(width * (int)this.glyphOffset.X, height * (int)this.glyphOffset.Y);
+		this.RenderZone.Unload();
+		this.RenderZone = RenderTexture2D.Load(width * (int)this.glyphOffset.X, height * (int)this.glyphOffset.Y);
 	}
 
 	public void Render()
 	{
-		Raylib.EnableEventWaiting();
-		ref Texture texture = ref this.RenderZone.texture;
-
-		Raylib.BeginTextureMode(this.RenderZone);
-		Raylib.ClearBackground(Raylib.BLACK);
+		ref Texture2D texture = ref this.RenderZone.Texture;
+		
+		Graphics.BeginTextureMode(this.RenderZone);
+		Graphics.ClearBackground(Color.Black);
 		{
 			this.ClearBuffer();
 			this.Screen?.OnDraw?.Invoke(this.Screen, new TerminalDrawEventArgs(this));
 			this.DrawBuffer();
 		}
-		Raylib.EndTextureMode();
-
-		Raylib.BeginDrawing();
-		Raylib.ClearBackground(Raylib.BLACK);
+		Graphics.EndTextureMode();
+	
+		Graphics.BeginDrawing();
+		Graphics.ClearBackground(Color.Black);
 		{
-			Raylib.DrawTexturePro(
+			Graphics.DrawTexturePro(
 					texture,
-					new Rectangle(0, 0, texture.width, -texture.height),
-					new Rectangle(0, 0, Raylib.GetScreenWidth(), Raylib.GetScreenHeight()),
+					new Rectangle(0, 0, texture.Width, -texture.Height),
+					new Rectangle(0, 0, Window.GetScreenWidth(), Window.GetScreenHeight()),
 					new Vector2(0, 0),
 					0.0f,
-					Raylib.WHITE);
+					Color.White);
 		}
-		Raylib.EndDrawing();
-		while (Raylib.GetKeyPressed() > 0) {}
+		Graphics.EndDrawing();
 	}
 
 	private void RenderGlyph(ref TerminalGlyph glyph, int x, int y)
 	{
-		Raylib.DrawTextEx(
+		Graphics.DrawTextEx(
 				this.font,
 				$"{glyph.Character}",
 				new Vector2(x * this.glyphOffset.X,
 					y * this.glyphOffset.Y),
-				this.font.baseSize,
+				this.font.BaseSize,
 				0.0f,
 				(Color)glyph.ForegroundColor);
 	}
 
 	public void Update(float deltaTime)
 	{
-		this.Screen?.OnUpdate?.Invoke(this.Screen, new TerminalUpdateEventArgs(Raylib.GetFrameTime(), this.InputController));
+		this.Screen?.OnUpdate?.Invoke(this.Screen, new TerminalUpdateEventArgs(Time.GetFrameTime(), this.InputController));
 	}
 
 	private void ClearBuffer()
